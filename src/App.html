@@ -1,0 +1,102 @@
+<:Window on:mousemove='setCoords(event)'/>
+
+<pre ref:pre contenteditable>{
+	array: [
+		['items', 'on', 'a', 'single', 'line'],
+		[
+			'items',
+			'on',
+			'multiple',
+			'lines'
+		]
+	],
+	string: "double quoted",
+	"unnecessarilyQuotedProperty": true,
+	coords: { x: 0, y: 0 },
+	count: 0
+}</pre>
+
+{{#if error}}
+	<p class='error'>{{error.message}} ({{error.loc.line}}:{{error.loc.line}})</p>
+{{/if}}
+
+<style>
+	pre {
+		tab-size: 2;
+		font-family: Menlo, monospace;
+		outline: none;
+	}
+
+	.error {
+		color: #d00;
+	}
+</style>
+
+<script>
+	import * as fleece from 'golden-fleece';
+
+	window.fleece = fleece;
+
+	export default {
+		data() {
+			return {
+				coords: { x: 0, y: 0 },
+				count: 0
+			};
+		},
+
+		oncreate() {
+			setInterval(() => {
+				const { count } = this.get();
+
+				this.set({
+					count: count + 1
+				});
+
+				this.patch();
+			}, 1000);
+		},
+
+		methods: {
+			setCoords(event) {
+				this.set({
+					coords: {
+						x: event.clientX,
+						y: event.clientY
+					}
+				});
+
+				this.patch();
+			},
+
+			patch() {
+				const { coords, count } = this.get();
+
+				const { pre } = this.refs;
+				const text = pre.firstChild;
+
+				const selection = getSelection();
+				const { anchorOffset, extentOffset } = selection;
+				const range = document.createRange();
+
+				try {
+					const data = fleece.evaluate(text.data);
+					data.coords = coords;
+					data.count = count;
+
+					const patched = fleece.patch(text.data, data);
+
+					text.data = patched;
+					this.set({ error: null });
+				} catch (error) {
+					this.set({ error })
+				}
+
+				range.setStart(text, anchorOffset);
+				range.setEnd(text, extentOffset);
+				selection.removeAllRanges();
+				selection.addRange(range);
+			}
+		}
+	};
+</script>
