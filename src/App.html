@@ -1,6 +1,6 @@
 <:Window on:mousemove='setCoords(event)'/>
 
-<pre ref:pre contenteditable>{
+<pre ref:pre contenteditable on:keydown='intercept(event)'>{
 	array: [
 		['items', 'on', 'a', 'single', 'line'],
 		[
@@ -58,6 +58,18 @@
 		},
 
 		methods: {
+			intercept(event) {
+				if (event.which === 13) {
+					event.preventDefault();
+					document.execCommand('insertHTML', false, '\n');
+				}
+
+				if (event.which === 9) {
+					event.preventDefault();
+					document.execCommand('insertHTML', false, '\t');
+				}
+			},
+
 			setCoords(event) {
 				this.set({
 					coords: {
@@ -73,25 +85,25 @@
 				const { coords, count } = this.get();
 
 				const { pre } = this.refs;
-				const text = pre.firstChild;
 
 				const selection = getSelection();
 				const { anchorOffset, extentOffset } = selection;
 				const range = document.createRange();
 
 				try {
-					const data = fleece.evaluate(text.data);
+					const data = fleece.evaluate(pre.textContent);
 					data.coords = coords;
 					data.count = count;
 
-					const patched = fleece.patch(text.data, data);
+					const patched = fleece.patch(pre.textContent, data);
 
-					text.data = patched;
+					pre.textContent = patched;
 					this.set({ error: null });
 				} catch (error) {
 					this.set({ error })
 				}
 
+				const text = pre.firstChild;
 				range.setStart(text, anchorOffset);
 				range.setEnd(text, extentOffset);
 				selection.removeAllRanges();
